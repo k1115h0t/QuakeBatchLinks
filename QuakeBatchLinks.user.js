@@ -2,11 +2,11 @@
 // @name         QuakeBatchLinks
 // @name:zh-CN   Quake 批量链接工具
 // @namespace    https://github.com/k1115h0t/QuakeBatchLinks
-// @version      1.2.2
+// @version      1.3.0
 // @license      GPL-3.0-only
-// @description  Batch open/copy Quake search result links with asset-level deduplication and local URL fallback, without issuing extra Quake API requests.
-// @description:zh Quake 搜索结果批量打开/复制工具，支持资产级去重、缺失 URL 本地补全，全程不主动请求 Quake API。
-// @description:zh-CN Quake 搜索结果批量打开/复制工具，支持资产级去重、缺失 URL 本地补全，全程不主动请求 Quake API。
+// @description  Batch open/copy Quake search result links with asset-level deduplication, local URL fallback, and a draggable/collapsible panel.
+// @description:zh Quake 搜索结果批量打开/复制工具，支持资产级去重、缺失 URL 本地补全、面板拖动/收起，全程不主动请求 Quake API。
+// @description:zh-CN Quake 搜索结果批量打开/复制工具，支持资产级去重、缺失 URL 本地补全、面板拖动/收起，全程不主动请求 Quake API。
 // @homepageURL  https://github.com/k1115h0t/QuakeBatchLinks
 // @supportURL   https://github.com/k1115h0t/QuakeBatchLinks/issues
 // @updateURL    https://raw.githubusercontent.com/k1115h0t/QuakeBatchLinks/main/QuakeBatchLinks.user.js
@@ -453,23 +453,121 @@
     ui.copy.disabled = !enabled;
   }
 
+  function constrainBox(box) {
+    if (!box.style.left || !box.style.top) return;
+
+    const rect = box.getBoundingClientRect();
+    const maxLeft = Math.max(0, W.innerWidth - rect.width);
+    const maxTop = Math.max(0, W.innerHeight - rect.height);
+    const left = Math.min(Math.max(0, rect.left), maxLeft);
+    const top = Math.min(Math.max(0, rect.top), maxTop);
+
+    box.style.left = `${Math.round(left)}px`;
+    box.style.top = `${Math.round(top)}px`;
+  }
+
+  function setCollapsed(box, toggle, collapsed) {
+    box.classList.toggle('qbl-collapsed', collapsed);
+    toggle.textContent = collapsed ? '+' : '−';
+    toggle.title = collapsed ? '展开面板' : '收起面板';
+    toggle.setAttribute('aria-label', collapsed ? '展开面板' : '收起面板');
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+
+    requestAnimationFrame(() => constrainBox(box));
+  }
+
+  function enableDragging(box, handle) {
+    let drag = null;
+
+    function endDrag(event) {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+
+      try {
+        handle.releasePointerCapture?.(event.pointerId);
+      } catch (_) {}
+
+      drag = null;
+      box.classList.remove('qbl-dragging');
+    }
+
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || event.target.closest('.qbl-toggle')) return;
+
+      const rect = box.getBoundingClientRect();
+
+      drag = {
+        pointerId: event.pointerId,
+        offsetX: event.clientX - rect.left,
+        offsetY: event.clientY - rect.top
+      };
+
+      box.style.left = `${Math.round(rect.left)}px`;
+      box.style.top = `${Math.round(rect.top)}px`;
+      box.style.right = 'auto';
+      box.style.bottom = 'auto';
+      box.classList.add('qbl-dragging');
+
+      try {
+        handle.setPointerCapture?.(event.pointerId);
+      } catch (_) {}
+
+      event.preventDefault();
+    });
+
+    handle.addEventListener('pointermove', event => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+
+      const maxLeft = Math.max(0, W.innerWidth - box.offsetWidth);
+      const maxTop = Math.max(0, W.innerHeight - box.offsetHeight);
+      const left = Math.min(Math.max(0, event.clientX - drag.offsetX), maxLeft);
+      const top = Math.min(Math.max(0, event.clientY - drag.offsetY), maxTop);
+
+      box.style.left = `${Math.round(left)}px`;
+      box.style.top = `${Math.round(top)}px`;
+    });
+
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', endDrag);
+    W.addEventListener('resize', () => constrainBox(box), { passive: true });
+  }
+
   function createUi() {
     if (ui || !document.body) return;
 
     const box = document.createElement('div');
     box.id = 'qbl-box';
     box.innerHTML = `
-      <div class="qbl-head"><strong>Quake 资产链接工具</strong><span class="qbl-count">0 资产</span></div>
-      <div class="qbl-stats">原始 0 · 去重 0 · 链接 0 · 补全 0 · 无链接 0</div>
-      <div class="qbl-actions"><button class="qbl-open" disabled>打开全部</button><button class="qbl-copy" disabled>复制全部</button></div>
-      <div class="qbl-status">等待 Quake 搜索响应…</div>`;
+      <div class="qbl-head" title="拖动此处移动面板">
+        <div class="qbl-head-main"><strong>Quake 资产链接工具</strong><span class="qbl-count">0 资产</span></div>
+        <button class="qbl-toggle" type="button" title="收起面板" aria-label="收起面板" aria-expanded="true">−</button>
+      </div>
+      <div class="qbl-body">
+        <div class="qbl-stats">原始 0 · 去重 0 · 链接 0 · 补全 0 · 无链接 0</div>
+        <div class="qbl-actions"><button class="qbl-open" disabled>打开全部</button><button class="qbl-copy" disabled>复制全部</button></div>
+        <div class="qbl-status">等待 Quake 搜索响应…</div>
+      </div>`;
 
     const style = document.createElement('style');
     style.textContent = `
-      #qbl-box{position:fixed;right:20px;bottom:20px;z-index:2147483647;width:335px;box-sizing:border-box;padding:12px;border:1px solid rgba(0,200,140,.38);border-radius:9px;background:rgba(20,24,26,.96);box-shadow:0 8px 30px rgba(0,0,0,.35);color:#e6e6e6;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
-      #qbl-box .qbl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}.qbl-count{color:#22c997}.qbl-stats{margin-bottom:10px;color:#aab5b2;font-size:12px;white-space:nowrap}.qbl-actions{display:flex;gap:8px}
-      #qbl-box button{flex:1;padding:8px 6px;border:1px solid rgba(0,200,140,.38);border-radius:6px;background:#073b30;color:#eafff8;cursor:pointer}#qbl-box button:hover:not(:disabled){background:#095440}#qbl-box button:disabled{opacity:.45;cursor:default}
-      .qbl-status{min-height:18px;margin-top:8px;color:#a8b0b0;font-size:12px}.qbl-status[data-error="1"]{color:#ff8a8a}`;
+      #qbl-box{position:fixed;right:20px;bottom:20px;z-index:2147483647;width:335px;box-sizing:border-box;padding:12px;border:1px solid rgba(0,200,140,.38);border-radius:9px;background:rgba(20,24,26,.96);box-shadow:0 8px 30px rgba(0,0,0,.35);color:#e6e6e6;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;transition:width .15s ease,padding .15s ease}
+      #qbl-box.qbl-collapsed{width:245px;padding:9px 10px}
+      #qbl-box.qbl-collapsed .qbl-body{display:none}
+      #qbl-box.qbl-collapsed .qbl-head{margin-bottom:0}
+      #qbl-box.qbl-dragging{transition:none}
+      #qbl-box .qbl-head{display:flex;align-items:center;gap:10px;margin-bottom:5px;cursor:move;touch-action:none;user-select:none}
+      #qbl-box.qbl-dragging .qbl-head{cursor:grabbing}
+      #qbl-box .qbl-head-main{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1;min-width:0}
+      #qbl-box .qbl-head strong{white-space:nowrap}
+      #qbl-box .qbl-count{color:#22c997;white-space:nowrap}
+      #qbl-box .qbl-toggle{flex:0 0 28px;width:28px;height:28px;padding:0;border:1px solid rgba(0,200,140,.38);border-radius:6px;background:#073b30;color:#eafff8;font-size:18px;line-height:1;cursor:pointer}
+      #qbl-box .qbl-toggle:hover{background:#095440}
+      #qbl-box .qbl-stats{margin-bottom:10px;color:#aab5b2;font-size:12px;white-space:nowrap}
+      #qbl-box .qbl-actions{display:flex;gap:8px}
+      #qbl-box .qbl-actions button{flex:1;padding:8px 6px;border:1px solid rgba(0,200,140,.38);border-radius:6px;background:#073b30;color:#eafff8;cursor:pointer}
+      #qbl-box .qbl-actions button:hover:not(:disabled){background:#095440}
+      #qbl-box .qbl-actions button:disabled{opacity:.45;cursor:default}
+      #qbl-box .qbl-status{min-height:18px;margin-top:8px;color:#a8b0b0;font-size:12px}
+      #qbl-box .qbl-status[data-error="1"]{color:#ff8a8a}`;
 
     document.documentElement.appendChild(style);
     document.body.appendChild(box);
@@ -479,11 +577,18 @@
       stats: box.querySelector('.qbl-stats'),
       status: box.querySelector('.qbl-status'),
       open: box.querySelector('.qbl-open'),
-      copy: box.querySelector('.qbl-copy')
+      copy: box.querySelector('.qbl-copy'),
+      toggle: box.querySelector('.qbl-toggle')
     };
 
     ui.open.addEventListener('click', openAll);
     ui.copy.addEventListener('click', copyAll);
+    ui.toggle.addEventListener('click', event => {
+      event.stopPropagation();
+      setCollapsed(box, ui.toggle, !box.classList.contains('qbl-collapsed'));
+    });
+
+    enableDragging(box, box.querySelector('.qbl-head'));
     updateUi(stats);
   }
 
