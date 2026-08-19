@@ -170,6 +170,11 @@ JavaScript 无法强制浏览器立即执行垃圾回收；脚本通过缩短对
 
 ### 更新日志
 
+#### v1.2.1
+
+- 在 userscript metadata 中明确声明 `GPL-3.0-only`；
+- 项目继续使用仓库中的 GNU GPL v3.0 许可证正文。
+
 #### v1.2.0
 
 - 增加 `http_load_url` 缺失时的本地 URL 补全；
@@ -181,6 +186,10 @@ JavaScript 无法强制浏览器立即执行垃圾回收；脚本通过缩短对
 
 - 从全局 URL 去重改为资产级去重；
 - 增加原始/资产/去重/链接/无链接统计。
+
+### 许可证
+
+本项目仅按 **GNU General Public License v3.0** 授权，SPDX 标识为 **`GPL-3.0-only`**。完整许可证正文见仓库根目录的 [`LICENSE`](LICENSE)。
 
 ### 安全边界
 
@@ -348,6 +357,11 @@ JavaScript cannot force the browser to run garbage collection immediately. The s
 
 ### Changelog
 
+#### v1.2.1
+
+- Explicitly declared `GPL-3.0-only` in the userscript metadata;
+- The project continues to use the GNU GPL v3.0 license text stored in the repository.
+
 #### v1.2.0
 
 - Added local URL fallback when `http_load_url` is missing;
@@ -359,6 +373,10 @@ JavaScript cannot force the browser to run garbage collection immediately. The s
 
 - Switched from global URL deduplication to asset-level deduplication;
 - Added raw/assets/dedup/links/no-link statistics.
+
+### License
+
+This project is licensed under the **GNU General Public License v3.0 only**, SPDX identifier **`GPL-3.0-only`**. See [`LICENSE`](LICENSE) for the full license text.
 
 ### Security boundary
 
