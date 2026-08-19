@@ -2,10 +2,11 @@
 // @name         QuakeBatchLinks
 // @name:zh-CN   Quake 批量链接工具
 // @namespace    https://github.com/k1115h0t/QuakeBatchLinks
-// @version      1.2.1
+// @version      1.2.2
 // @license      GPL-3.0-only
-// @description  Batch open/copy Quake result links via passive response monitoring, asset-level deduplication, and local URL fallback.
-// @description:zh-CN 被动读取 Quake Web 已有搜索响应，按资产去重并批量打开/复制链接；http_load_url 缺失时可基于同一响应本地补全，不主动发送或重放 Quake API 请求。
+// @description  Batch open/copy Quake search result links with asset-level deduplication and local URL fallback, without issuing extra Quake API requests.
+// @description:zh Quake 搜索结果批量打开/复制工具，支持资产级去重、缺失 URL 本地补全，全程不主动请求 Quake API。
+// @description:zh-CN Quake 搜索结果批量打开/复制工具，支持资产级去重、缺失 URL 本地补全，全程不主动请求 Quake API。
 // @homepageURL  https://github.com/k1115h0t/QuakeBatchLinks
 // @supportURL   https://github.com/k1115h0t/QuakeBatchLinks/issues
 // @updateURL    https://raw.githubusercontent.com/k1115h0t/QuakeBatchLinks/main/QuakeBatchLinks.user.js
